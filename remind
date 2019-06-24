@@ -3,7 +3,8 @@
 # For the Mac command line:
 # Notifies as stdout, voice, and Mac notification after user specified delay 
 
-# Available at https://gist.github.com/keithrbennett/bd471b4ba1aacb4ef2a5e803f859b3c9
+# Project home is https://github.com/keithrbennett/mac-cl-remind.
+# See Apache License 2.0 there.
 
 
 USAGE_MESSAGE = <<~HEREDOC
