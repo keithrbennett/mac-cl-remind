@@ -14,9 +14,10 @@ USAGE_MESSAGE = <<~HEREDOC
     remind when message
 
     when:    period of time to wait before notifying
-             suffix should be s (seconds), m (minutes). or h (hours). Default: s
-             using multiple suffixes (e.g. '1m30s') is not supported
-             fractions are supported (e.g. '1.5h')
+             suffix can be s (seconds), m (minutes). or h (hours). Default: s
+             using multiple suffixes (e.g. '1m30s') is supported
+             fractions are supported (e.g. '1.5h3m')
+             the 's' can be omitted for seconds, it will be assumed: e.g. '2m3' == '2m3s'
     message: can be 1..n arguments; if > 1, they will be joined with a single space
 
     Examples:
@@ -50,15 +51,21 @@ def validate_command_line
 end
 
 
-def char_to_multiplier(char)
-  case char.downcase
-  when 'h'
-    60 * 60
-  when 'm'
-    60
-  else
-    1
-  end
+def parse_delay
+  string = ARGV[0].downcase
+  string << 's' unless %w(h m s).include?(string[-1])
+
+  seconds = 0
+
+  hours_matcher   = /([.\d]+)h/.match(string)
+  minutes_matcher = /([.\d]+)m/.match(string)
+  seconds_matcher = /([.\d]+)s/.match(string)
+
+  seconds += hours_matcher.captures[0].to_f   * 60 * 60 if hours_matcher
+  seconds += minutes_matcher.captures[0].to_f * 60      if minutes_matcher
+  seconds += seconds_matcher.captures[0].to_f           if seconds_matcher
+
+  seconds
 end
 
 
@@ -68,10 +75,7 @@ end
 # @return [number of seconds to sleep before reminding, message]
 def parse_command_line
 
-  when_string = ARGV[0]
-
-  number = when_string.to_f
-  seconds = char_to_multiplier(when_string[-1]) * number
+  seconds = parse_delay
 
   message = ARGV[1..-1].join(' ')
 
