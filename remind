@@ -83,10 +83,21 @@ def parse_command_line
 end
 
 
+def growl_available?
+  `which growlnotify`
+  $?.exitstatus == 0
+end
+
+
 # Uses AppleScript to display a GUI notification.
-def mac_notify(message)
-  osa_command = %Q{'display notification "#{message}" with title "Reminder"'}
-  command = "osascript -e #{osa_command}"
+def growl_or_mac_notify(message)
+  command = if growl_available?
+    %Q{growlnotify -t Reminder -m #{message}}
+  else
+    osa_command = %Q{'display notification "#{message}" with title "Reminder"'}
+    "osascript -e #{osa_command}"
+  end
+
   `#{command}`
 end
 
@@ -117,7 +128,7 @@ def main
 
   puts "Sleeping #{seconds} seconds..."
   sleep(seconds)
-  notify(message)
+  growl_or_mac_notify(message)
 end
 
 
