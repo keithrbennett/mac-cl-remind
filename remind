@@ -1,0 +1,119 @@
+#!/usr/bin/env ruby
+
+# For the Mac command line:
+# Notifies as stdout, voice, and Mac notification after user specified delay 
+
+# Available at https://gist.github.com/keithrbennett/bd471b4ba1aacb4ef2a5e803f859b3c9
+
+
+USAGE_MESSAGE = <<~HEREDOC
+
+    Syntax is:
+
+    remind when message
+
+    when:    period of time to wait before notifying
+             suffix should be s (seconds), m (minutes). or h (hours). Default: s
+             using multiple suffixes (e.g. '1m30s') is not supported
+             fractions are supported (e.g. '1.5h')
+    message: can be 1..n arguments; if > 1, they will be joined with a single space
+
+    Examples:
+
+    remind 30m "Time to get up and stretch."
+    remind 30m Time to get up and stretch.   # quoting message is not necessary
+    remind 1800s Time to get up and stretch. 
+    remind 1800 Time to get up and stretch.  # seconds is the default unit of time measure
+    remind 0.5h Time to get up and stretch.  # fractions are ok
+
+    You might want to add "&" to your command line to send it to the background.
+
+HEREDOC
+
+
+def exit_with_error(message)
+  $stderr.puts message
+  exit -1
+end
+
+
+# Checks that delay and message have both been specified,
+# and that the delay string is correctly formed.
+def validate_command_line
+
+  exit_with_error(USAGE_MESSAGE) if ARGV.size < 2
+ 
+  valid_duration_end_chars = %w(0 1 2 3 4 5 6 7 8 9 s S m M h H)
+  last_char = ARGV[0][-1]
+  exit_with_error(USAGE_MESSAGE) unless valid_duration_end_chars.include?(last_char)
+end
+
+
+def char_to_multiplier(char)
+  case char.downcase
+  when 'h'
+    60 * 60
+  when 'm'
+    60
+  else
+    1
+  end
+end
+
+
+# Parses wait number string, ex: '30s', '5m'
+# The rest of ARGV is the message to say
+# 
+# @return [number of seconds to sleep before reminding, message]
+def parse_command_line
+
+  when_string = ARGV[0]
+
+  number = when_string.to_f
+  seconds = char_to_multiplier(when_string[-1]) * number
+
+  message = ARGV[1..-1].join(' ')
+
+  [seconds, message]
+end
+
+
+# Uses AppleScript to display a GUI notification.
+def mac_notify(message)
+  osa_command = %Q{'display notification "#{message}" with title "Reminder"'}
+  command = "osascript -e #{osa_command}"
+  `#{command}`
+end
+
+
+def stdout_message(message)
+  line = '=' * 79
+  <<~HEREDOC
+
+    #{line}
+    #{message}
+    #{line}
+
+  HEREDOC
+end
+
+
+# Notifies in 3 ways: Mac notification message, stdout, and with voice
+def notify(message)
+  mac_notify(message)
+  puts(stdout_message(message))
+  `say #{message}`
+end
+
+
+def main
+  validate_command_line
+  seconds, message = parse_command_line
+
+  puts "Sleeping #{seconds} seconds..."
+  sleep(seconds)
+  notify(message)
+end
+
+
+main
