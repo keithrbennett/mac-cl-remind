@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 # For the Mac command line:
-# Notifies as stdout, voice, and Mac/Growl notification after user specified delay
+# Notifies as stdout, voice, and Mac GUI notification after user specified delay.
 
 # Project home is https://github.com/keithrbennett/mac-cl-remind.
 # See Apache License 2.0 there.
@@ -45,7 +45,7 @@ def validate_command_line
 
   exit_with_error(USAGE_MESSAGE) if ARGV.size < 2
  
-  valid_duration_end_chars = %w(0 1 2 3 4 5 6 7 8 9 s S m M h H) # digits plus sShHmMƒ
+  valid_duration_end_chars = %w(0 1 2 3 4 5 6 7 8 9 s S m M h H) # digits plus sShHmM
   last_char = ARGV[0][-1]
   exit_with_error(USAGE_MESSAGE) unless valid_duration_end_chars.include?(last_char)
 end
@@ -74,31 +74,16 @@ end
 # 
 # @return [number of seconds to sleep before reminding, message]
 def parse_command_line
-
   seconds = parse_delay
-
   message = ARGV[1..-1].join(' ')
-
   [seconds, message]
 end
 
 
-def growl_available?
-  `which growlnotify`
-  $?.exitstatus == 0
-end
-
-
 # Uses AppleScript to display a GUI notification.
-def growl_or_mac_notify(message)
-  command = if growl_available?
-    %Q{growlnotify -t Reminder -m "#{message}"}
-  else
-    osa_command = %Q{'display notification "#{message}" with title "Reminder"'}
-    "osascript -e #{osa_command}"
-  end
-
-  `#{command}`
+def mac_notify(message)
+  osa_command = %Q{'display notification "#{message}" with title "Reminder"'}
+  `osascript -e #{osa_command}`
 end
 
 
@@ -116,8 +101,8 @@ end
 
 # Notifies in 3 ways: Mac notification message, stdout, and with voice
 def notify(message)
-  mac_notify(message)
   puts(stdout_message(message))
+  mac_notify(message)
   `say #{message}`
 end
 
@@ -125,10 +110,9 @@ end
 def main
   validate_command_line
   seconds, message = parse_command_line
-
   puts "Sleeping #{seconds} seconds..."
   sleep(seconds)
-  growl_or_mac_notify(message)
+  notify(message)
 end
 
 
